@@ -187,12 +187,3 @@ pYIN đọc mỗi file dưới dạng mono ở `22.050 Hz` trong bộ nhớ. Nó
 
 **Cent** là đơn vị đo khoảng cách cao độ theo tỷ lệ tần số. Một bán cung bằng **100 cent** và một quãng tám bằng **1.200 cent**. Script dùng `1200 × log₂(f_đo / f_tham_chiếu)`. Giá trị dương nghĩa là đo cao hơn tham chiếu, giá trị âm nghĩa là thấp hơn.
 
-### Xử lý một dòng bị đánh dấu
-
-1. Xem file có thiếu đầu ra, sai thời lượng, sai nhãn hay chỉ có độ lệch cao độ. Raw và processed cùng lệch nhãn là lý do để nghe lại bản thu và xác nhận nốt với người chơi.
-2. Đối chiếu bằng một bộ dò thứ hai và xem **đoạn tiếng ngân** trên đồ thị. Nếu hai công cụ chênh gần `1.200 cent`, kiểm tra khả năng nhầm quãng tám trước khi đổi nhãn. Tỷ lệ khung có cao độ cao chỉ cho biết bộ dò đã đưa ra kết quả ở nhiều khung. [Audio File Pitch Analyzer](https://tomidi.org/studio/pitch-detector)
-3. Nếu cần xem phổ, chọn cùng một đoạn tiếng đàn trong hai file rồi mở **Analyze → Plot Spectrum** trong Audacity. Ví dụ, nếu frame bắt đầu ở `0,4 s` trong raw, đoạn `0,8–1,2 s` trong raw tương ứng `0,4–0,8 s` trong processed. Dùng cùng cửa sổ Hann và cùng FFT Size. Ở `44.100 Hz`, Size `16384` cần đoạn ít nhất khoảng `0,372 s` và cho khoảng cách bin khoảng `2,7 Hz`. Quan sát các đỉnh quanh tần số cần kiểm tra và các họa âm. [Tài liệu Plot Spectrum của Audacity](https://manual.audacityteam.org/man/plot_spectrum.html)
-
-**Ví dụ C4 ở Dây 2.** Nếu bộ dò lúc báo C3 gần `130,8 Hz`, lúc báo C4 gần `261,6 Hz`, hãy xem cả cụm phổ. Các đỉnh gần `262`, `523` và `785 Hz` phù hợp với C4. Một mình đỉnh `262 Hz` cũng có thể là họa âm thứ hai của C3, nên hãy kiểm tra thêm vùng `131` và `392 Hz`. Khi phổ và thông tin từ người chơi cùng phù hợp với C4, giữ nhãn C4 và ghi chú bộ dò có lúc báo thấp một quãng tám. Nếu còn mâu thuẫn, giữ trạng thái cần xác minh và nghe lại lần gảy còn lại hoặc đoạn gốc.
-
-Một cặp file đạt yêu cầu khi đầu ra có ít nhất **1 giây**, chứa đúng tiếng đàn cần phân tích, và nhãn cao độ có căn cứ từ bản thu hoặc thông tin người chơi. CSV giúp tìm các trường hợp cần kiểm tra thủ công.
