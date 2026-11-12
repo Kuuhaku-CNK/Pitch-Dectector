@@ -116,7 +116,7 @@ File đầu vào:  [ khoảng nền ][ gảy ][           tiếng đàn ngân   
 - **Tự tương quan (ACF)** đo mức giống nhau giữa tín hiệu và bản sao của nó sau khi dịch một số mẫu. Nếu tín hiệu lặp sau khoảng `L` mẫu, tần số có thể ước lượng bằng `f₀ ≈ sample_rate / L`. Ở `44.100 Hz`, E2 có chu kỳ gần `535` mẫu. Chọn nhầm điểm lặp dài gấp đôi có thể cho kết quả thấp một quãng tám.
 - **pYIN** là bộ dò cao độ được gọi trong `check_pitch.py` để đối chiếu dữ liệu. Hai script trong cây thư mục trên dùng để tiền xử lý và kiểm tra bằng pYIN. Các khái niệm FFT và ACF giải thích cách có thể phân tích WAV đầu ra ở bước nhận diện cao độ của đồ án. [Tài liệu librosa về ước lượng tần số cơ bản](https://librosa.org/doc/dev/auto_tutorials/01-intro/03-f0.html)
 
-## 4. Code thực hiện các bước ở đâu?
+## 4. Code thực hiện các bước
 
 | Hàm hoặc file | Công việc |
 |---|---|
