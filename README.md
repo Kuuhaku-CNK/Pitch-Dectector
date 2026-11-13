@@ -225,22 +225,3 @@ Bỏ `--string` để xem nốt gần nhất và độ lệch so với nốt đ�
 
 Độ lệch tính theo `1200 × log₂(f₀ / f_đích)`. Với dung sai mặc định, dưới −5 cent thì siết dây để tăng cao độ, trên +5 cent thì nới dây để hạ cao độ, và trong khoảng [−5, +5] cent thì dây đạt yêu cầu. Script `scripts/tune.py` in cả nốt đo được, nốt đích, tần số, số cent và chỉ dẫn.
 
-### Gọi từ Python
-
-```python
-from src.audioloader import load_wav
-from src.pitch_detection import estimate_pitch
-from src.tuning import tuning_advice
-
-sample_rate, signal = load_wav("data/processed/Dây 6/E2_01_processed.wav")
-pitch = estimate_pitch(signal, sample_rate)
-
-if pitch is not None:
-    advice = tuning_advice(pitch.frequency_hz, string_number=6)
-    print(pitch.frequency_hz, advice.target_note, advice.cents, advice.status)
-```
-
-### Kiểm tra trên dữ liệu của project
-
-Thuật toán đo được cao độ ổn định ở 37 trong 38 WAV đã tiền xử lý. Cả 37 nốt khớp nhãn file. Mẫu `Dây 2/C4_processed.wav` có đỉnh phổ gần 262 Hz, nhưng phép đo theo khung thiếu đồng thuận nên chương trình yêu cầu gảy lại. Các trường hợp này minh họa lý do bộ lên dây cần kiểm tra độ ổn định trước khi đưa ra chỉ dẫn.
-
