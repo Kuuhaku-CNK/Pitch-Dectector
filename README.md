@@ -1,6 +1,8 @@
-# Tiền xử lý và kiểm tra cao độ nốt guitar
+# Nhận diện cao độ và lên dây guitar
 
 Dự án chuẩn bị các đoạn WAV nốt đơn để phân tích cao độ bằng FFT và tự tương quan (Autocorrelation, viết tắt là ACF). Với mỗi lần gảy, chương trình đọc WAV, chuyển về mono, loại DC offset, tìm điểm bắt đầu của tiếng đàn và lưu một đoạn dài tối thiểu **1 giây**. Script kiểm tra dùng pYIN để đối chiếu cao độ trước và sau khi cắt.
+
+Bộ lên dây dùng thuật toán YIN để đo tần số cơ bản từ các đoạn WAV và tính độ lệch so với nốt đích. Xem [cách chạy và giải thích thuật toán](#7-nhận-diện-cao-độ-và-chỉnh-dây).
 
 ## 1. Cài đặt trên Windows
 
@@ -38,11 +40,14 @@ Project/
 │   └── pitch_check.csv      # Tạo khi chạy kiểm tra cao độ
 ├── scripts/
 │   ├── scripts.py          # Tiền xử lý một file hoặc cả bộ
-│   └── check_pitch.py      # Đối chiếu cao độ bằng pYIN
+│   ├── check_pitch.py      # Đối chiếu cao độ bằng pYIN
+│   └── tune.py             # Đo cao độ và hướng dẫn chỉnh dây
 └── src/
     ├── __init__.py
     ├── audioloader.py      # Đọc WAV, đổi kiểu mẫu và gộp kênh
-    └── preprocessing.py    # Loại DC, tìm onset, cắt frame và lưu WAV
+    ├── preprocessing.py    # Loại DC, tìm onset, cắt frame và lưu WAV
+    ├── pitch_detection.py  # Ước lượng tần số cơ bản bằng YIN
+    └── tuning.py           # Đổi Hz sang nốt và tính độ lệch cent
 ```
 
 Đưa sáu thư mục đã cắt từ `D:\DSP\Filter` vào `data/raw/`. Trong dự án này, `raw` là các **file từng lần gảy đã tách từ bản thu dài**. Giữ bản thu dài riêng để đối chiếu lời đọc tên nốt, số dây và thứ tự thu.
@@ -114,7 +119,7 @@ File đầu vào:  [ khoảng nền ][ gảy ][           tiếng đàn ngân   
 
 - **FFT** là cách tính phổ tần số. Trong phổ, các đỉnh cho biết thành phần nào mạnh. Tiếng guitar thường có **tần số cơ bản** `f₀` và các **họa âm** gần `2f₀`, `3f₀`, v.v. Ví dụ với C4 khoảng `261,63 Hz`, các họa âm đầu có thể xuất hiện gần `523` và `785 Hz`. Đỉnh mạnh nhất có thể là một họa âm, vì vậy nên đọc cả cụm đỉnh. Khi FFT dùng toàn bộ 1 giây mẫu mà không đệm thêm, khoảng cách giữa các bin là `1 Hz`. Độ chính xác ước lượng còn phụ thuộc vào cửa sổ, độ nhiễu và cách chọn đỉnh.
 - **Tự tương quan (ACF)** đo mức giống nhau giữa tín hiệu và bản sao của nó sau khi dịch một số mẫu. Nếu tín hiệu lặp sau khoảng `L` mẫu, tần số có thể ước lượng bằng `f₀ ≈ sample_rate / L`. Ở `44.100 Hz`, E2 có chu kỳ gần `535` mẫu. Chọn nhầm điểm lặp dài gấp đôi có thể cho kết quả thấp một quãng tám.
-- **pYIN** là bộ dò cao độ được gọi trong `check_pitch.py` để đối chiếu dữ liệu. Hai script trong cây thư mục trên dùng để tiền xử lý và kiểm tra bằng pYIN. Các khái niệm FFT và ACF giải thích cách có thể phân tích WAV đầu ra ở bước nhận diện cao độ của đồ án. [Tài liệu librosa về ước lượng tần số cơ bản](https://librosa.org/doc/dev/auto_tutorials/01-intro/03-f0.html)
+- **pYIN** là bộ dò cao độ được gọi trong `check_pitch.py` để đối chiếu dữ liệu. Bộ lên dây ở mục 7 dùng một bản cài đặt YIN bằng NumPy và SciPy. [Tài liệu librosa về ước lượng tần số cơ bản](https://librosa.org/doc/dev/auto_tutorials/01-intro/03-f0.html)
 
 ## 4. Code thực hiện các bước
 
@@ -186,4 +191,56 @@ pYIN đọc mỗi file dưới dạng mono ở `22.050 Hz` trong bộ nhớ. Nó
 | `kiem_tra` | Trạng thái dùng để lọc các dòng cần nghe lại, đối chiếu nhãn hoặc tìm đầu ra bị thiếu. |
 
 **Cent** là đơn vị đo khoảng cách cao độ theo tỷ lệ tần số. Một bán cung bằng **100 cent** và một quãng tám bằng **1.200 cent**. Script dùng `1200 × log₂(f_đo / f_tham_chiếu)`. Giá trị dương nghĩa là đo cao hơn tham chiếu, giá trị âm nghĩa là thấp hơn.
+
+## 7. Nhận diện cao độ và chỉnh dây
+
+### Chạy trên WAV
+
+Mở PowerShell ở thư mục gốc của project. Để chỉnh dây, gảy **một dây buông** và chọn số dây bằng `--string`. Dây 1 là dây mỏng nhất. Tùy chọn `--raw` gọi phần tiền xử lý hiện có trước khi đo.
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.tune "data/processed/Dây 6/E2_01_processed.wav" --string 6
+.\.venv\Scripts\python.exe -m scripts.tune "data/raw/Dây 6/D#2_01.wav" --raw --string 6
+.\.venv\Scripts\python.exe -m scripts.tune "data/processed/Dây 1/A4_processed.wav"
+```
+
+Bỏ `--string` để xem nốt gần nhất và độ lệch so với nốt đó, chẳng hạn khi phân tích một nốt bấm phím. Khi có `--string 6`, mục tiêu luôn là E2. Bản thu `D#2_01.wav` đo được khoảng **77,44 Hz (D♯2)**, thấp hơn E2 **107,62 cent**, nên chương trình chỉ dẫn **siết dây**. Có thể đổi dung sai mặc định ±5 cent bằng `--tolerance`.
+
+| Dây buông | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---:|---:|---:|---:|---:|---:|
+| Nốt chuẩn | E4 | B3 | G3 | D3 | A2 | E2 |
+| Tần số (Hz) | 329,63 | 246,94 | 196,00 | 146,83 | 110,00 | 82,41 |
+
+### Thuật toán nhận diện trong `src/pitch_detection.py`
+
+1. **Chia khung và kiểm tra mức tín hiệu.** `estimate_pitch()` nhận tín hiệu mono và sampling rate gốc, trừ DC rồi chia khung. Với dải mặc định 55–880 Hz, khung dài 120 ms và dịch 30 ms. Khung 120 ms chứa gần 10 chu kỳ của E2 và WAV dài một giây cho 30 khung đầy đủ. Code bỏ qua khung có RMS quanh mức trung bình không vượt 0,001 trên thang biên độ WAV đã chuyển sang float.
+2. **Tính sai khác tại các độ trễ.** `_yin_difference()` dùng `d(τ) = Σ[x[n] − x[n+τ]]²`, với cùng số hạng ở mọi độ trễ `τ`. Nếu dịch khoảng một chu kỳ, hai dãy mẫu gần trùng nhau và `d(τ)` nhỏ. Khai triển bình phương cho hai tổng năng lượng và một tích chéo. Code lấy hai tổng năng lượng từ tổng tích lũy của `x²` và tính tích chéo ở các độ trễ bằng tương quan qua FFT. FFT ở đây phục vụ phép tính độ giống nhau theo độ trễ.
+3. **Chọn độ trễ từ hàm sai khác chuẩn hóa.** `_estimate_frame()` chia `d(τ)` cho trung bình của `d(1), …, d(τ)`. Trong các đáy cục bộ, code chọn đáy đầu tiên có giá trị chuẩn hóa dưới 0,10. Hai hoặc ba lần chu kỳ cũng có thể cho đáy sâu. Chọn đáy đầu tiên giúp giảm lỗi chọn các bội đó. Khung bị bỏ qua nếu thiếu đáy đạt ngưỡng hoặc tần số ước lượng nằm ngoài dải tìm kiếm. [Bài báo gốc về YIN của de Cheveigné và Kawahara](https://www.ee.columbia.edu/~dpwe/papers/deChevK02-yin.pdf)
+4. **Nội suy chu kỳ và đổi sang Hz.** Vị trí đáy ban đầu là một số nguyên mẫu. Code dùng giá trị sai khác ở đáy và hai điểm liền kề để nội suy parabol, rồi tính `f₀ = sample_rate / độ_trễ_nội_suy`. Ví dụ, khoảng 535,1 mẫu ở 44.100 Hz tương ứng với khoảng 82,41 Hz.
+5. **Kiểm tra độ ổn định giữa các khung.** Code lấy trung vị của các tần số hợp lệ và giữ các khung nằm trong ±30 cent quanh trung vị. Nếu nhóm này chiếm hơn một nửa tổng số khung, trung vị của nhóm là kết quả cuối cùng. Nếu thiếu đồng thuận, hàm trả về `None` và CLI yêu cầu gảy lại.
+
+### Chỉ dẫn chỉnh dây trong `src/tuning.py`
+
+`tuning_advice()` đổi tần số sang số MIDI theo công thức `69 + 12 × log₂(f₀ / 440)`, trong đó MIDI 69 là A4 ở 440 Hz. Làm tròn số MIDI cho biết nốt gần nhất. Số MIDI của dây buông đã chọn cho biết nốt đích. Tần số đích được tính bằng `440 × 2^((MIDI_đích − 69) / 12)`.
+
+Độ lệch tính theo `1200 × log₂(f₀ / f_đích)`. Với dung sai mặc định, dưới −5 cent thì siết dây để tăng cao độ, trên +5 cent thì nới dây để hạ cao độ, và trong khoảng [−5, +5] cent thì dây đạt yêu cầu. Script `scripts/tune.py` in cả nốt đo được, nốt đích, tần số, số cent và chỉ dẫn.
+
+### Gọi từ Python
+
+```python
+from src.audioloader import load_wav
+from src.pitch_detection import estimate_pitch
+from src.tuning import tuning_advice
+
+sample_rate, signal = load_wav("data/processed/Dây 6/E2_01_processed.wav")
+pitch = estimate_pitch(signal, sample_rate)
+
+if pitch is not None:
+    advice = tuning_advice(pitch.frequency_hz, string_number=6)
+    print(pitch.frequency_hz, advice.target_note, advice.cents, advice.status)
+```
+
+### Kiểm tra trên dữ liệu của project
+
+Thuật toán đo được cao độ ổn định ở 37 trong 38 WAV đã tiền xử lý. Cả 37 nốt khớp nhãn file. Mẫu `Dây 2/C4_processed.wav` có đỉnh phổ gần 262 Hz, nhưng phép đo theo khung thiếu đồng thuận nên chương trình yêu cầu gảy lại. Các trường hợp này minh họa lý do bộ lên dây cần kiểm tra độ ổn định trước khi đưa ra chỉ dẫn.
 
